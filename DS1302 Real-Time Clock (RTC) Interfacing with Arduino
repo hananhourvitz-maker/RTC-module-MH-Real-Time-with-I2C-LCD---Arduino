@@ -1,0 +1,65 @@
+#include <ThreeWire.h>  
+#include <RtcDS1302.h>
+
+// חיווט: DAT = 3, CLK = 2, RST = 4
+ThreeWire myWire(3, 2, 4); 
+RtcDS1302<ThreeWire> Rtc(myWire);
+
+void setup() {
+    Serial.begin(9600);
+    Rtc.Begin();
+    
+    if (Rtc.GetIsWriteProtected()) {
+        Rtc.SetIsWriteProtected(false);
+    }
+    if (!Rtc.GetIsRunning()) {
+        Rtc.SetIsRunning(true);
+    }
+
+    // קריאת הזמן הנוכחי כדי לבדוק אם הוא תקין וחוקי
+    RtcDateTime now = Rtc.GetDateTime();
+
+    // --- הבדיקה המקצועית והבטוחה ---
+    // אנחנו בודקים: האם הזמן ב-RTC לא חוקי (למשל יום 0)? 
+    // או האם השנה הנוכחית ב-RTC ישנה יותר משנת הקימפול של הקוד?
+    if (!now.IsValid() || now.Year() < 2026) {
+        Serial.println("זיהוי: ה-RTC מאופס או לא תקין. מעדכן לזמן המחשב...");
+        RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
+        Rtc.SetDateTime(compiled);
+    } else {
+        Serial.println("השעון תקין ומסונכרן. קורא נתונים...");
+    }
+}
+
+void loop() {
+    RtcDateTime now = Rtc.GetDateTime();
+    
+    if (!now.IsValid()) {
+        Serial.println("שגיאה בקריאת הנתונים מה-RTC!");
+    } else {
+        printDateTime(now);
+    }
+    
+    delay(1000); // הדפסה בכל שנייה
+}
+
+void printDateTime(const RtcDateTime& dt) {
+    // הדפסת תאריך עם אפסים מובילים לעיצוב יפה (DD-MM-YYYY)
+    if (dt.Day() < 10) Serial.print('0'); 
+    Serial.print(dt.Day()); Serial.print('-');
+    if (dt.Month() < 10) Serial.print('0');
+    Serial.print(dt.Month()); Serial.print('-');
+    Serial.print(dt.Year());
+
+    Serial.print("  |  ");
+
+    // הדפסת שעה עם אפסים מובילים (HH:MM:SS)
+    if (dt.Hour() < 10) Serial.print('0');
+    Serial.print(dt.Hour()); Serial.print(':');
+    if (dt.Minute() < 10) Serial.print('0');
+    Serial.print(dt.Minute()); Serial.print(':');
+    if (dt.Second() < 10) Serial.print('0');
+    Serial.print(dt.Second());
+
+    Serial.println();
+}
