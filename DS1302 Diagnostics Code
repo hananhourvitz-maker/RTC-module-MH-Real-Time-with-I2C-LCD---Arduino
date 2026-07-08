@@ -1,0 +1,46 @@
+#include <ThreeWire.h>  
+#include <RtcDS1302.h>
+
+ThreeWire myWire(3, 2, 4); // DAT = 3, CLK = 2, RST = 4
+RtcDS1302<ThreeWire> Rtc(myWire);
+
+void setup() {
+    Serial.begin(9600);
+    while(!Serial); // המתנה לפתיחת המסך הסיריאלי
+    
+    Serial.println("--- מתחיל אבחון RTC ---");
+    Rtc.Begin();
+    
+    // ביטול הגנת כתיבה והפעלה מחדש של השעון בכל מקרה
+    Rtc.SetIsWriteProtected(false);
+    Rtc.SetIsRunning(true);
+
+    // כפיית עדכון לזמן המחשב הנוכחי (בלי תנאים!)
+    RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
+    Rtc.SetDateTime(compiled);
+    Serial.println("נשלחה פקודת עדכון זמן בכוח.");
+}
+
+void loop() {
+    RtcDateTime now = Rtc.GetDateTime();
+
+    // בדיקה האם הרכיב החזיר ערכים תקינים והגיוניים
+    if (!now.IsValid()) {
+        // אם הגענו לכאן, הארדואינו לא מצליח לדבר עם הצ'יפ בכלל
+        Serial.println("שגיאה: ה-RTC מחזיר נתונים לא תקינים! בדוק חיווט או מתח.");
+    } else {
+        Serial.print("הזמן נקרא בהצלחה: ");
+        printDateTime(now);
+    }
+    
+    delay(2000);
+}
+
+void printDateTime(const RtcDateTime& dt) {
+    Serial.print(dt.Day()); Serial.print('/');
+    Serial.print(dt.Month()); Serial.print('/');
+    Serial.print(dt.Year()); Serial.print(" ");
+    Serial.print(dt.Hour()); Serial.print(':');
+    Serial.print(dt.Minute()); Serial.print(':');
+    Serial.println(dt.Second());
+}
