@@ -1,0 +1,28 @@
+const int BTN_SET = 5;
+const int BTN_UP = 6;
+const int BTN_DOWN = 7;
+
+void setup() {
+    Serial.begin(9600);
+    
+    // הגדרת הפינים
+    pinMode(BTN_SET, INPUT_PULLUP);
+    pinMode(BTN_UP, INPUT_PULLUP);
+    pinMode(BTN_DOWN, INPUT_PULLUP);
+    
+    Serial.println("--- RAW BUTTON READING ---");
+}
+
+void loop() {
+    // קריאה ישירה של הפינים (1 = פתוח/HIGH, 0 = לחוץ/GND)
+    int valSet = digitalRead(BTN_SET);
+    int valUp = digitalRead(BTN_UP);
+    int valDown = digitalRead(BTN_DOWN);
+    
+    // הדפסה פשוטה בשורה אחת
+    Serial.print("SET: "); Serial.print(valSet);
+    Serial.print(" | UP: "); Serial.print(valUp);
+    Serial.print(" | DOWN: "); Serial.println(valDown);
+    
+    delay(200); // קריאה 5 פעמים בשנייה
+}
