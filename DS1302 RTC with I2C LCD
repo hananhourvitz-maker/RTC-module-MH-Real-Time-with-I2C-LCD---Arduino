@@ -1,0 +1,102 @@
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+#include <ThreeWire.h>  
+#include <RtcDS1302.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// חיווט: DAT = 3, CLK = 2, RST = 4
+ThreeWire myWire(3, 2, 4); 
+RtcDS1302<ThreeWire> Rtc(myWire);
+
+void setup() {
+    Serial.begin(9600);
+    
+    lcd.init();
+    lcd.backlight();
+    lcd.setCursor(0, 0);
+    lcd.print("System Starting.");
+    
+    Rtc.Begin();
+    
+    if (Rtc.GetIsWriteProtected()) {
+        Rtc.SetIsWriteProtected(false);
+    }
+    if (!Rtc.GetIsRunning()) {
+        Rtc.SetIsRunning(true);
+    }
+
+    RtcDateTime now = Rtc.GetDateTime();
+    if (!now.IsValid() || now.Year() < 2026) {
+        Serial.println("זיהוי: ה-RTC מאופס. מעדכן לזמן המחשב...");
+        lcd.setCursor(0, 1);
+        lcd.print("Updating Time...");
+        RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
+        Rtc.SetDateTime(compiled);
+        delay(1500); 
+    }
+    lcd.clear(); // ניקוי המסך פעם אחת ב-Setup
+}
+
+void loop() {
+    RtcDateTime now = Rtc.GetDateTime();
+    
+    if (!now.IsValid()) {
+        Serial.println("RTC Error!");
+        lcd.setCursor(0, 0);
+        lcd.print("RTC Read Error! ");
+    } else {
+        printToSerial(now);
+        printToLCD(now);
+    }
+    
+    delay(1000); 
+}
+
+// --- הפונקציה המעודכנת למסך ה-LCD ---
+void printToLCD(const RtcDateTime& dt) {
+    // שורה ראשונה - תאריך
+    lcd.setCursor(1, 0); // התחלה בעמודה 1, שורה 0
+    lcd.print("Date: ");
+    
+    if (dt.Day() < 10) lcd.print('0'); 
+    lcd.print(dt.Day()); lcd.print('/');
+    
+    if (dt.Month() < 10) lcd.print('0');
+    lcd.print(dt.Month()); lcd.print('/');
+    
+    // חילוץ 2 הספרות האחרונות של השנה 
+    int shortYear = dt.Year() % 100;
+    if (shortYear < 10) lcd.print('0'); // הוספת אפס מוביל במידה והשנה היא לדוגמה '09
+    lcd.print(shortYear);
+
+    // שורה שנייה - שעה
+    lcd.setCursor(1, 1); // התחלה בעמודה 1, שורה 1
+    lcd.print("Time: ");
+    
+    if (dt.Hour() < 10) lcd.print('0');
+    lcd.print(dt.Hour()); lcd.print(':');
+    
+    if (dt.Minute() < 10) lcd.print('0');
+    lcd.print(dt.Minute()); lcd.print(':');
+    
+    if (dt.Second() < 10) lcd.print('0');
+    lcd.print(dt.Second());
+}
+
+void printToSerial(const RtcDateTime& dt) {
+    if (dt.Day() < 10) Serial.print('0'); 
+    Serial.print(dt.Day()); Serial.print('-');
+    if (dt.Month() < 10) Serial.print('0');
+    Serial.print(dt.Month()); Serial.print('-');
+    Serial.print(dt.Year());
+
+    Serial.print(" | ");
+
+    if (dt.Hour() < 10) Serial.print('0');
+    Serial.print(dt.Hour()); Serial.print(':');
+    if (dt.Minute() < 10) Serial.print('0');
+    Serial.print(dt.Minute()); Serial.print(':');
+    if (dt.Second() < 10) Serial.print('0');
+    Serial.println(dt.Second());
+}
